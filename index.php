@@ -85,6 +85,17 @@ require_once 'db_config.php';
             transform: translateY(-1px);
         }
 
+        .btn-manager {
+            background-color: #0f766e;
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn-manager:hover {
+            background-color: #115e59;
+            transform: translateY(-1px);
+        }
+
         .search-box {
             display: flex;
             gap: 8px;
@@ -215,9 +226,10 @@ require_once 'db_config.php';
         <div>
             <a href="create.html" class="btn btn-primary">✍️ 新增回饋表單</a>
             <a href="advanced_query.php" class="btn btn-secondary">📊 進階統計報表</a>
+            <a href="manager_home.php" class="btn btn-manager">管理者首頁</a>
         </div>
         <form method="GET" action="index.php" class="search-box">
-            <input type="text" name="search" placeholder="搜尋顧客、桌號或意見..." 
+            <input type="text" name="search" placeholder="搜尋顧客、桌號或意見..."
                    class="search-input" value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
             <button type="submit" class="btn btn-primary">搜尋</button>
             <?php if (isset($_GET['search']) && $_GET['search'] !== ''): ?>
@@ -242,7 +254,7 @@ require_once 'db_config.php';
             <tbody>
                 <?php
                 $search = isset($_GET['search']) ? $_GET['search'] : '';
-                
+
                 // JOIN query: Feedback_forms + Customers + Consumption_records
                 $sql = "SELECT f.Feedback_ID, f.date, f.time, f.opinion, f.rating, c.name AS customer_name, cr.table_number
                         FROM Feedback_forms f
@@ -251,11 +263,11 @@ require_once 'db_config.php';
 
                 if ($search !== '') {
                     $search_esc = $conn->real_escape_string($search);
-                    $sql .= " WHERE c.name LIKE '%$search_esc%' 
-                              OR cr.table_number LIKE '%$search_esc%' 
+                    $sql .= " WHERE c.name LIKE '%$search_esc%'
+                              OR cr.table_number LIKE '%$search_esc%'
                               OR f.opinion LIKE '%$search_esc%'";
                 }
-                
+
                 $sql .= " ORDER BY f.Feedback_ID DESC";
                 $result = $conn->query($sql);
 
@@ -278,7 +290,7 @@ require_once 'db_config.php';
                 } else {
                     echo "<tr><td colspan='7' class='no-data'>查無回饋資料</td></tr>";
                 }
-                
+
                 $conn->close();
                 ?>
             </tbody>
