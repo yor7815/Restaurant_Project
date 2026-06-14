@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($dish_id) && $dish_rating > 0) {
                 $detail_id = 1;
                 $stmt = $conn->prepare("INSERT INTO Feedback_details (Feedback_ID, Detail_ID, opinion, rating) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("siis", $feedback_id, $detail_id, $dish_opinion, $dish_rating);
+                $stmt->bind_param("sisi", $feedback_id, $detail_id, $dish_opinion, $dish_rating);
                 if (!$stmt->execute()) {
                     throw new Exception("新增餐點評價細節失敗: " . $stmt->error);
                 }
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!empty($staff_id) && $staff_rating > 0) {
                 $detail_id = 2;
                 $stmt = $conn->prepare("INSERT INTO Feedback_details (Feedback_ID, Detail_ID, opinion, rating) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("siis", $feedback_id, $detail_id, $staff_opinion, $staff_rating);
+                $stmt->bind_param("sisi", $feedback_id, $detail_id, $staff_opinion, $staff_rating);
                 if (!$stmt->execute()) {
                     throw new Exception("新增員工評價細節失敗: " . $stmt->error);
                 }
