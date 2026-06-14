@@ -1,40 +1,25 @@
 <?php
+require_once 'db_config.php';
 
-// ******** update your personal settings ******** 
-$servername = "";
-$username = "";
-$password = "";
-$dbname = "";
+$id = isset($_GET['id']) ? $_GET['id'] : '';
 
-// Connecting to and selecting a MySQL database
-$conn = new mysqli($servername, $username, $password, $dbname);
+if (!empty($id)) {
+    // Escaping the ID for security
+    $id_esc = $conn->real_escape_string($id);
+    
+    // Deleting from Feedback_forms will automatically delete from Feedback_details,
+    // Rate_staff, and Rate_dish due to ON DELETE CASCADE constraints.
+    $delete_sql = "DELETE FROM Feedback_forms WHERE Feedback_ID = '$id_esc'";
 
-if (!$conn->set_charset("utf8")) {
-    printf("Error loading character set utf8: %s\n", $conn->error);
-    exit();
+    if ($conn->query($delete_sql) === TRUE) {
+        header('Location: index.php');
+        exit;
+    } else {
+        echo "<h2 align='center'><font color='red'>刪除失敗!!</font></h2>";
+        echo "<p align='center'>" . htmlspecialchars($conn->error) . "</p>";
+        echo "<p align='center'><a href='index.php'>返回主頁</a></p>";
+    }
+} else {
+    echo "資料不完全";
 }
-
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-} 
-
-$id = $_GET['id'];
-
-if (isset($id)) {
-    $delete_sql = ""; // TODO 
-
-	if ($conn->query($delete_sql) === TRUE) {
-        // echo "刪除成功!<a href='main.php'>返回主頁</a>";
-        // 重定向用戶到下一頁
-		header('Location: index.php');
-		exit;
-    }else{
-        echo "刪除失敗!";
-	}
-
-}else{
-	echo "資料不完全";
-}
-				
 ?>
