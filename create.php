@@ -21,10 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $date = date('Y-m-d');
         $time = date('H:i:s');
 
-        // Optional Dish feedback
-        $dish_id = isset($_POST['dish_id']) ? $_POST['dish_id'] : '';
-        $dish_rating = isset($_POST['dish_rating']) ? intval($_POST['dish_rating']) : 0;
-        $dish_opinion = isset($_POST['dish_opinion']) ? $_POST['dish_opinion'] : '';
+        // Multiple Dishes feedback
+        $dishes_posted = isset($_POST['dishes']) ? $_POST['dishes'] : [];
 
         // Optional Staff feedback
         $staff_id = isset($_POST['staff_id']) ? $_POST['staff_id'] : '';
@@ -43,36 +41,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $stmt->close();
 
-            // 2. Insert Dish feedback detail (Detail_ID = 1) if provided
-            if (!empty($dish_id) && $dish_rating > 0) {
-                $detail_id = 1;
-                $stmt = $conn->prepare("INSERT INTO Feedback_details (Feedback_ID, Detail_ID, opinion, rating) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("sisi", $feedback_id, $detail_id, $dish_opinion, $dish_rating);
-                if (!$stmt->execute()) {
-                    throw new Exception("新增餐點評價細節失敗: " . $stmt->error);
+            // 2. Insert multiple Dish feedback details (Detail_ID = 1, 2, 3...)
+            $detail_id = 1;
+            foreach ($dishes_posted as $dish_data) {
+                if (!isset($dish_data['dish_id']) || empty($dish_data['dish_id'])) {
+                    continue;
                 }
-                $stmt->close();
+                $dish_id = $dish_data['dish_id'];
+                $dish_rating = intval($dish_data['rating']);
+                $dish_opinion = isset($dish_data['opinion']) ? $dish_data['opinion'] : '';
 
-                $stmt = $conn->prepare("INSERT INTO Rate_dish (Feedback_ID, Detail_ID, Dish_ID) VALUES (?, ?, ?)");
-                $stmt->bind_param("sis", $feedback_id, $detail_id, $dish_id);
-                if (!$stmt->execute()) {
-                    throw new Exception("建立餐點評分關係失敗: " . $stmt->error);
+                if ($dish_rating > 0) {
+                    $stmt = $conn->prepare("INSERT INTO Feedback_details (Feedback_ID, Detail_ID, opinion, rating) VALUES (?, ?, ?, ?)");
+                    $stmt->bind_param("sisi", $feedback_id, $detail_id, $dish_opinion, $dish_rating);
+                    if (!$stmt->execute()) {
+                        throw new Exception("新增餐點評價細節失敗: " . $stmt->error);
+                    }
+                    $stmt->close();
+
+                    $stmt = $conn->prepare("INSERT INTO Rate_dish (Feedback_ID, Detail_ID, Dish_ID) VALUES (?, ?, ?)");
+                    $stmt->bind_param("sis", $feedback_id, $detail_id, $dish_id);
+                    if (!$stmt->execute()) {
+                        throw new Exception("建立餐點評分關係失敗: " . $stmt->error);
+                    }
+                    $stmt->close();
+
+                    $detail_id++;
                 }
-                $stmt->close();
             }
 
-            // 3. Insert Staff feedback detail (Detail_ID = 2) if provided
+            // 3. Insert Staff feedback detail (Detail_ID = 100 to avoid conflicts with dishes)
             if (!empty($staff_id) && $staff_rating > 0) {
-                $detail_id = 2;
+                $staff_detail_id = 100;
                 $stmt = $conn->prepare("INSERT INTO Feedback_details (Feedback_ID, Detail_ID, opinion, rating) VALUES (?, ?, ?, ?)");
-                $stmt->bind_param("sisi", $feedback_id, $detail_id, $staff_opinion, $staff_rating);
+                $stmt->bind_param("sisi", $feedback_id, $staff_detail_id, $staff_opinion, $staff_rating);
                 if (!$stmt->execute()) {
                     throw new Exception("新增員工評價細節失敗: " . $stmt->error);
                 }
                 $stmt->close();
 
                 $stmt = $conn->prepare("INSERT INTO Rate_staff (Feedback_ID, Detail_ID, Staff_ID) VALUES (?, ?, ?)");
-                $stmt->bind_param("sis", $feedback_id, $detail_id, $staff_id);
+                $stmt->bind_param("sis", $feedback_id, $staff_detail_id, $staff_id);
                 if (!$stmt->execute()) {
                     throw new Exception("建立員工評分關係失敗: " . $stmt->error);
                 }
@@ -96,29 +105,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch helper data for dropdown lists (GET)
+// Fetch lists for mappings
 $customers = [];
 $res = $conn->query("SELECT Customer_ID, name FROM Customers");
-if ($res) {
-    while($row = $res->fetch_assoc()) $customers[] = $row;
+while($row = $res->fetch_assoc()) $customers[] = $row;
+
+// Query Customer -> Records mapping
+$customer_records = [];
+$res = $conn->query("SELECT h.Customer_ID, r.Record_ID, r.date, r.table_number 
+                     FROM Has h 
+                     JOIN Consumption_records r ON h.Record_ID = r.Record_ID");
+while ($row = $res->fetch_assoc()) {
+    $customer_records[$row['Customer_ID']][] = [
+        'id' => $row['Record_ID'],
+        'date' => $row['date'],
+        'table' => $row['table_number']
+    ];
 }
 
-$records = [];
-$res = $conn->query("SELECT Record_ID, date, table_number FROM Consumption_records");
-if ($res) {
-    while($row = $res->fetch_assoc()) $records[] = $row;
+// Query Record -> Dishes mapping
+$record_dishes = [];
+$res = $conn->query("SELECT c.Record_ID, d.Dish_ID, d.name 
+                     FROM Contain c 
+                     JOIN Dishes d ON c.Dish_ID = d.Dish_ID");
+while ($row = $res->fetch_assoc()) {
+    $record_dishes[$row['Record_ID']][] = [
+        'id' => $row['Dish_ID'],
+        'name' => $row['name']
+    ];
 }
 
-$dishes = [];
-$res = $conn->query("SELECT Dish_ID, name FROM Dishes");
-if ($res) {
-    while($row = $res->fetch_assoc()) $dishes[] = $row;
-}
-
-$staffs = [];
-$res = $conn->query("SELECT Staff_ID, name, position FROM Staffs");
-if ($res) {
-    while($row = $res->fetch_assoc()) $staffs[] = $row;
+// Query Record -> Staffs mapping (who served that record)
+$record_staffs = [];
+$res = $conn->query("SELECT s.Record_ID, st.Staff_ID, st.name, st.position 
+                     FROM Service s
+                     JOIN Staffs st ON s.Staff_ID = st.Staff_ID");
+while ($row = $res->fetch_assoc()) {
+    $record_staffs[$row['Record_ID']][] = [
+        'id' => $row['Staff_ID'],
+        'name' => $row['name'],
+        'position' => $row['position']
+    ];
 }
 
 // Suggest next Feedback_ID
@@ -158,7 +185,7 @@ if ($res && $res->num_rows > 0) {
         }
 
         .container {
-            max-width: 700px;
+            max-width: 750px;
             margin: 0 auto;
         }
 
@@ -221,7 +248,7 @@ if ($res && $res->num_rows > 0) {
 
         textarea {
             resize: vertical;
-            height: 100px;
+            height: 80px;
         }
 
         .section-title {
@@ -231,6 +258,9 @@ if ($res && $res->num_rows > 0) {
             padding-bottom: 6px;
             border-bottom: 2px solid var(--border-color);
             color: var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .btn-row {
@@ -240,7 +270,7 @@ if ($res && $res->num_rows > 0) {
         }
 
         .btn {
-            padding: 10px 24px;
+            padding: 10px 20px;
             font-size: 0.95rem;
             font-weight: 500;
             border-radius: 8px;
@@ -250,6 +280,7 @@ if ($res && $res->num_rows > 0) {
             text-decoration: none;
             display: inline-flex;
             align-items: center;
+            gap: 6px;
         }
 
         .btn-submit {
@@ -270,10 +301,55 @@ if ($res && $res->num_rows > 0) {
             background-color: #d1d5db;
         }
 
+        .btn-add-dish {
+            background-color: #e0f2fe;
+            color: #0369a1;
+            font-size: 0.85rem;
+            padding: 6px 12px;
+        }
+
+        .btn-add-dish:hover {
+            background-color: #bae6fd;
+        }
+
+        .btn-delete-dish {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            font-size: 0.85rem;
+            padding: 6px 12px;
+            align-self: flex-end;
+            margin-bottom: 20px;
+        }
+
+        .btn-delete-dish:hover {
+            background-color: #fecaca;
+        }
+
         .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
+        }
+
+        .dish-feedback-item {
+            background-color: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .dish-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .dish-title {
+            font-weight: 600;
+            color: #4b5563;
         }
     </style>
 </head>
@@ -324,13 +400,8 @@ if ($res && $res->num_rows > 0) {
 
                 <div class="form-group">
                     <label for="record_id">選擇消費紀錄</label>
-                    <select id="record_id" name="record_id" required>
-                        <option value="">-- 請選擇消費紀錄 --</option>
-                        <?php foreach($records as $r): ?>
-                            <option value="<?php echo htmlspecialchars($r['Record_ID']); ?>">
-                                <?php echo htmlspecialchars("桌號: " . $r['table_number'] . " | 日期: " . $r['date'] . " (" . $r['Record_ID'] . ")"); ?>
-                            </option>
-                        <?php endforeach; ?>
+                    <select id="record_id" name="record_id" required disabled>
+                        <option value="">-- 請先選擇顧客 --</option>
                     </select>
                 </div>
             </div>
@@ -340,38 +411,17 @@ if ($res && $res->num_rows > 0) {
                 <textarea id="opinion" name="opinion" placeholder="請輸入您對本次用餐的整體感覺或建議..."></textarea>
             </div>
 
-            <!-- Part 2: Detailed Dish Rating -->
-            <div class="section-title">餐點滿意度評價 (選填)</div>
-            
-            <div class="grid-2">
-                <div class="form-group">
-                    <label for="dish_id">選擇餐點</label>
-                    <select id="dish_id" name="dish_id">
-                        <option value="">-- 無 --</option>
-                        <?php foreach($dishes as $d): ?>
-                            <option value="<?php echo htmlspecialchars($d['Dish_ID']); ?>">
-                                <?php echo htmlspecialchars($d['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="dish_rating">餐點滿意度</label>
-                    <select id="dish_rating" name="dish_rating">
-                        <option value="0">-- 評分 --</option>
-                        <option value="5">★★★★★ (5分)</option>
-                        <option value="4">★★★★☆ (4分)</option>
-                        <option value="3">★★★☆☆ (3分)</option>
-                        <option value="2">★★☆☆☆ (2分)</option>
-                        <option value="1">★☆☆☆☆ (1分)</option>
-                    </select>
-                </div>
+            <!-- Part 2: Detailed Dish Ratings -->
+            <div class="section-title">
+                <span>餐點滿意度評價 (選填)</span>
+                <button type="button" id="add-dish-btn" class="btn btn-add-dish" disabled>➕ 增加餐點評價</button>
             </div>
-
-            <div class="form-group">
-                <label for="dish_opinion">餐點意見細節</label>
-                <textarea id="dish_opinion" name="dish_opinion" placeholder="口味、熟度或份量上的細部意見..."></textarea>
+            
+            <div id="dishes-container">
+                <!-- Dynamic dish evaluation items will be appended here -->
+                <p id="dish-placeholder-text" style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin: 20px 0;">
+                    請先選擇消費紀錄以評價點購的餐點
+                </p>
             </div>
 
             <!-- Part 3: Detailed Staff Rating -->
@@ -380,13 +430,8 @@ if ($res && $res->num_rows > 0) {
             <div class="grid-2">
                 <div class="form-group">
                     <label for="staff_id">選擇外場服務員</label>
-                    <select id="staff_id" name="staff_id">
-                        <option value="">-- 無 --</option>
-                        <?php foreach($staffs as $s): ?>
-                            <option value="<?php echo htmlspecialchars($s['Staff_ID']); ?>">
-                                <?php echo htmlspecialchars($s['name'] . " (" . $s['position'] . ")"); ?>
-                            </option>
-                        <?php endforeach; ?>
+                    <select id="staff_id" name="staff_id" disabled>
+                        <option value="">-- 請先選擇消費紀錄 --</option>
                     </select>
                 </div>
 
@@ -415,6 +460,162 @@ if ($res && $res->num_rows > 0) {
         </form>
     </div>
 </div>
+
+<script>
+// JSON mapping output from PHP
+const customerRecordsMap = <?php echo json_encode($customer_records); ?> || {};
+const recordDishesMap = <?php echo json_encode($record_dishes); ?> || {};
+const recordStaffsMap = <?php echo json_encode($record_staffs); ?> || {};
+
+let dishCount = 0;
+let currentRecordDishes = [];
+
+document.getElementById('customer_id').addEventListener('change', function() {
+    const customerId = this.value;
+    const recordSelect = document.getElementById('record_id');
+    
+    // Clear record select
+    recordSelect.innerHTML = '<option value="">-- 請選擇消費紀錄 --</option>';
+    recordSelect.disabled = true;
+    
+    // Reset dependency controls
+    resetDishContainer();
+    resetStaffSelect();
+
+    if (customerId && customerRecordsMap[customerId]) {
+        const records = customerRecordsMap[customerId];
+        records.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = `桌號: ${r.table} | 日期: ${r.date} (${r.id})`;
+            recordSelect.appendChild(opt);
+        });
+        recordSelect.disabled = false;
+    } else {
+        recordSelect.innerHTML = '<option value="">-- 請先選擇顧客 --</option>';
+    }
+});
+
+document.getElementById('record_id').addEventListener('change', function() {
+    const recordId = this.value;
+    const addDishBtn = document.getElementById('add-dish-btn');
+    
+    resetDishContainer();
+    resetStaffSelect();
+
+    if (recordId) {
+        // 1. Store and enable dishes evaluation
+        currentRecordDishes = recordDishesMap[recordId] || [];
+        if (currentRecordDishes.length > 0) {
+            document.getElementById('dish-placeholder-text').textContent = "尚未新增餐點評價，點擊右上角按鈕新增";
+            addDishBtn.disabled = false;
+            // Add first dish input automatically for user convenience
+            addDishField();
+        } else {
+            document.getElementById('dish-placeholder-text').textContent = "此消費紀錄中無餐點資料";
+            addDishBtn.disabled = true;
+        }
+
+        // 2. Populate and enable staff select
+        const staffSelect = document.getElementById('staff_id');
+        staffSelect.innerHTML = '<option value="">-- 無 --</option>';
+        const staffs = recordStaffsMap[recordId] || [];
+        if (staffs.length > 0) {
+            staffs.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = `${s.name} (${s.position})`;
+                staffSelect.appendChild(opt);
+            });
+            staffSelect.disabled = false;
+        } else {
+            staffSelect.innerHTML = '<option value="">-- 此紀錄無分配服務人員 --</option>';
+            staffSelect.disabled = true;
+        }
+    }
+});
+
+function resetDishContainer() {
+    const container = document.getElementById('dishes-container');
+    container.innerHTML = '<p id="dish-placeholder-text" style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin: 20px 0;">請先選擇消費紀錄以評價點購的餐點</p>';
+    document.getElementById('add-dish-btn').disabled = true;
+    dishCount = 0;
+    currentRecordDishes = [];
+}
+
+function resetStaffSelect() {
+    const staffSelect = document.getElementById('staff_id');
+    staffSelect.innerHTML = '<option value="">-- 請先選擇消費紀錄 --</option>';
+    staffSelect.disabled = true;
+}
+
+document.getElementById('add-dish-btn').addEventListener('click', function() {
+    addDishField();
+});
+
+function addDishField() {
+    const container = document.getElementById('dishes-container');
+    const placeholder = document.getElementById('dish-placeholder-text');
+    if (placeholder) {
+        placeholder.remove();
+    }
+
+    const dishItem = document.createElement('div');
+    dishItem.className = 'dish-feedback-item';
+    dishItem.id = `dish-item-${dishCount}`;
+
+    // Generate option elements for dishes
+    let dishOptionsHtml = '<option value="">-- 請選擇餐點 --</option>';
+    currentRecordDishes.forEach(d => {
+        dishOptionsHtml += `<option value="${d.id}">${d.name}</option>`;
+    });
+
+    dishItem.innerHTML = `
+        <div class="dish-header">
+            <span class="dish-title">餐點評價 #${dishCount + 1}</span>
+            <button type="button" class="btn btn-delete-dish" onclick="removeDishField(${dishCount})">🗑️ 移除</button>
+        </div>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>評價餐點</label>
+                <select name="dishes[${dishCount}][dish_id]" required>
+                    ${dishOptionsHtml}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>餐點滿意度</label>
+                <select name="dishes[${dishCount}][rating]" required>
+                    <option value="5">★★★★★ (5分)</option>
+                    <option value="4">★★★★☆ (4分)</option>
+                    <option value="3">★★★☆☆ (3分)</option>
+                    <option value="2">★★☆☆☆ (2分)</option>
+                    <option value="1">★☆☆☆☆ (1分)</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom: 0;">
+            <label>餐點意見細節</label>
+            <textarea name="dishes[${dishCount}][opinion]" placeholder="對此餐點口味、熟度或份量上的細部意見..."></textarea>
+        </div>
+    `;
+
+    container.appendChild(dishItem);
+    dishCount++;
+}
+
+function removeDishField(id) {
+    const item = document.getElementById(`dish-item-${id}`);
+    if (item) {
+        item.remove();
+    }
+    
+    // Show placeholder text if all items removed
+    const container = document.getElementById('dishes-container');
+    if (container.children.length === 0) {
+        container.innerHTML = '<p id="dish-placeholder-text" style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin: 20px 0;">尚未新增餐點評價，點擊右上角按鈕新增</p>';
+    }
+}
+</script>
 
 </body>
 </html>

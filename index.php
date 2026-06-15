@@ -292,7 +292,7 @@ require_once 'db_config.php';
                               OR f.opinion LIKE '%$search_esc%'";
                 }
                 
-                $sql .= " ORDER BY f.Feedback_ID DESC";
+                $sql .= " ORDER BY f.Feedback_ID ASC";
                 $result = $conn->query($sql);
 
                 if ($result && $result->num_rows > 0) {
