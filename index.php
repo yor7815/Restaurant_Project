@@ -96,6 +96,17 @@ require_once 'db_config.php';
             transform: translateY(-1px);
         }
 
+        .btn-customer {
+            background-color: #64B5F6;
+            margin-left: 10px;
+            color: white;
+        }
+
+        .btn-customer:hover {
+            background-color: #42A5F5;
+            transform: translateY(-1px);
+        }
+
         .search-box {
             display: flex;
             gap: 8px;
@@ -227,6 +238,7 @@ require_once 'db_config.php';
             <a href="create.html" class="btn btn-primary">✍️ 新增回饋表單</a>
             <a href="advanced_query.php" class="btn btn-secondary">📊 進階統計報表</a>
             <a href="manager_home.php" class="btn btn-manager">管理者首頁</a>
+            <a href="customer_data.php" class="btn btn-customer">顧客總覽</a>
         </div>
         <form method="GET" action="index.php" class="search-box">
             <input type="text" name="search" placeholder="搜尋顧客、桌號或意見..."
