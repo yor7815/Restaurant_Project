@@ -36,7 +36,8 @@ CREATE TABLE `Customers` (
     `name` VARCHAR(50) NOT NULL,
     `gender` CHAR(1) CHECK (`gender` IN ('M', 'F', 'O')),
     `age` INT CHECK (`age` >= 0),
-    `phone_number` VARCHAR(20)
+    `phone_number` VARCHAR(20),
+    `password` VARCHAR(100) NOT NULL DEFAULT '123'
 ) ENGINE = InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. Consumption Records (消費紀錄)
@@ -142,10 +143,10 @@ INSERT INTO `Dishes` (`Dish_ID`, `name`, `type`, `allergens`, `price`) VALUES
 ('D004', '熔岩巧克力蛋糕', '甜點', '蛋, 小麥', 150.00);
 
 -- Customers (C001, C002, C003)
-INSERT INTO `Customers` (`Customer_ID`, `member_level`, `name`, `gender`, `age`, `phone_number`) VALUES
-('C001', '黃金會員', '張三', 'M', 28, '0911222333'),
-('C002', '白銀會員', '李四', 'F', 34, '0922333444'),
-('C003', '一般顧客', '王五', 'M', 45, '0933444555');
+INSERT INTO `Customers` (`Customer_ID`, `member_level`, `name`, `gender`, `age`, `phone_number`, `password`) VALUES
+('C001', '黃金會員', '張三', 'M', 28, '0911222333', '123'),
+('C002', '白銀會員', '李四', 'F', 34, '0922333444', '123'),
+('C003', '一般顧客', '王五', 'M', 45, '0933444555', '123');
 
 -- Consumption Records (R001, R002, R003, R004)
 INSERT INTO `Consumption_records` (`Record_ID`, `date`, `time`, `table_number`, `number_of_customers`, `discount`, `amount`) VALUES

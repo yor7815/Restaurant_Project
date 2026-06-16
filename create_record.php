@@ -1,4 +1,13 @@
 <?php
+session_start();
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['staff', 'manager'])) {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'customer') {
+        header('Location: customer_dashboard.php');
+    } else {
+        header('Location: login.php');
+    }
+    exit;
+}
 require_once 'db_config.php';
 
 $message = "";
@@ -69,10 +78,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$stmt->execute()) {
                 throw new Exception("建立服務員關係失敗：" . $stmt->error);
             }
-            $stmt->close();
-
             $conn->commit();
-            header('Location: index.php');
+            $message = "成功建立用餐紀錄！新增的 Record_ID 為: " . $record_id;
+            if ($_SESSION['role'] === 'staff') {
+                header('Location: staff_dashboard.php');
+            } else {
+                header('Location: index.php');
+            }
             exit;
         } catch (Exception $e) {
             $conn->rollback();
@@ -248,6 +260,14 @@ if ($res) {
 <body>
 
 <div class="container">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef4444; padding-bottom: 10px; margin-bottom: 20px;">
+        <span style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">🍅 紅番茄</span>
+        <?php if($_SESSION['role'] === 'staff'): ?>
+            <a href="staff_dashboard.php" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem;">返回服務員專區</a>
+        <?php else: ?>
+            <a href="index.php" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem;">返回經理首頁</a>
+        <?php endif; ?>
+    </div>
     <div class="card">
         <h1>建立用餐紀錄</h1>
 
@@ -344,7 +364,11 @@ if ($res) {
             </div>
 
             <div class="btn-row">
-                <a href="index.php" class="btn btn-cancel">回首頁</a>
+                <?php if($_SESSION['role'] === 'staff'): ?>
+                    <a href="staff_dashboard.php" class="btn btn-cancel">返回專區</a>
+                <?php else: ?>
+                    <a href="index.php" class="btn btn-cancel">返回經理首頁</a>
+                <?php endif; ?>
                 <button type="submit" class="btn btn-submit">建立</button>
             </div>
         </form>

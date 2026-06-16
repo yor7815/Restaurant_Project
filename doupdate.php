@@ -1,4 +1,10 @@
 <?php
+session_start();
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
+    header('Location: login.php');
+    exit;
+}
+
 require_once 'db_config.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -104,19 +110,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Commit Transaction
             $conn->commit();
-            header('Location: index.php');
+            header('Location: feedback_list.php');
             exit;
 
         } catch (Exception $e) {
             $conn->rollback();
             echo "<h2 align='center'><font color='red'>修改失敗，交易已回復！</font></h2>";
             echo "<p align='center'>" . htmlspecialchars($e->getMessage()) . "</p>";
-            echo "<p align='center'><a href='index.php'>返回主頁</a></p>";
+            echo "<p align='center'><a href='feedback_list.php'>返回回饋列表</a></p>";
         }
     } else {
         echo "資料不完全";
     }
 } else {
-    header('Location: index.php');
+    header('Location: feedback_list.php');
 }
 ?>

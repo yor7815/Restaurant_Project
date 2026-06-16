@@ -1,4 +1,15 @@
 <?php
+session_start();
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'customer') {
+        header('Location: customer_dashboard.php');
+    } elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'staff') {
+        header('Location: staff_dashboard.php');
+    } else {
+        header('Location: login.php');
+    }
+    exit;
+}
 require_once 'db_config.php';
 ?>
 <!DOCTYPE html>
@@ -147,20 +158,21 @@ require_once 'db_config.php';
 <body>
 
 <div class="container">
-    <a href="index.php" class="back-link">← 返回回饋表單首頁</a>
-    <h1>📊 進階統計報表</h1>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ef4444; padding-bottom: 15px;">
+        <h1 style="margin: 0; color: #ef4444; font-size: 2.2rem; display: flex; align-items: center; gap: 8px;">🍅 紅番茄</h1>
+        <div>
+            <span style="font-size: 1rem; color: #4b5563; margin-right: 15px;">經理 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 您好</span>
+            <a href="logout.php" style="background-color: #fee2e2; color: #b91c1c; padding: 8px 16px; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#fecaca'" onmouseout="this.style.backgroundColor='#fee2e2'">登出系統</a>
+        </div>
+    </div>
+
+    <a href="index.php" class="back-link">⭠ 返回經理主選單</a>
+    <h2>📊 進階統計報表</h2>
 
     <!-- Query 1: Aggregate Function (AVG, COUNT) on Dishes -->
     <div class="report-section">
-        <div class="report-title">1. 餐點平均滿意度與點餐熱門次數 (Aggregate Function + GROUP BY + JOIN)</div>
+        <div class="report-title">1. 餐點平均滿意度與點餐熱門次數</div>
         <div class="report-description">統計每項餐點在回饋明細中的歷史平均得分與評價次數，可用於廚房內場評估餐點口味。</div>
-        <div class="sql-box">SELECT d.Dish_ID, d.name, d.type, d.price, 
-       AVG(fd.rating) AS avg_rating, COUNT(fd.rating) AS review_count
-FROM Dishes d
-LEFT JOIN Rate_dish rd ON d.Dish_ID = rd.Dish_ID
-LEFT JOIN Feedback_details fd ON rd.Feedback_ID = fd.Feedback_ID AND rd.Detail_ID = fd.Detail_ID
-GROUP BY d.Dish_ID, d.name, d.type, d.price
-ORDER BY avg_rating DESC;</div>
         
         <table>
             <thead>
@@ -207,15 +219,8 @@ ORDER BY avg_rating DESC;</div>
 
     <!-- Query 2: Aggregate Function (AVG, COUNT) on Staffs -->
     <div class="report-section">
-        <div class="report-title">2. 外場員工服務滿意度統計 (Aggregate Function + GROUP BY + JOIN)</div>
+        <div class="report-title">2. 外場員工服務滿意度統計</div>
         <div class="report-description">統計外場員工獲得的服務星等，作為績效考核的基準。</div>
-        <div class="sql-box">SELECT s.Staff_ID, s.name, s.position, 
-       AVG(fd.rating) AS avg_rating, COUNT(fd.rating) AS review_count
-FROM Staffs s
-LEFT JOIN Rate_staff rs ON s.Staff_ID = rs.Staff_ID
-LEFT JOIN Feedback_details fd ON rs.Feedback_ID = fd.Feedback_ID AND rs.Detail_ID = fd.Detail_ID
-GROUP BY s.Staff_ID, s.name, s.position
-ORDER BY avg_rating DESC;</div>
         
         <table>
             <thead>
@@ -260,13 +265,8 @@ ORDER BY avg_rating DESC;</div>
 
     <!-- Query 3: Set Comparison (Subquery) -->
     <div class="report-section">
-        <div class="report-title">3. 高於平均整體評分的回饋表單 (Set Comparison / Subquery)</div>
+        <div class="report-title">3. 高於平均整體評分的回饋表單</div>
         <div class="report-description">查詢整體評分大於「所有回饋平均分」的表單，過濾出正面且高於平均的顧客聲音。</div>
-        <div class="sql-box">SELECT f.Feedback_ID, f.rating, f.opinion, c.name AS customer_name, f.date
-FROM Feedback_forms f
-JOIN Customers c ON f.Customer_ID = c.Customer_ID
-WHERE f.rating > (SELECT AVG(rating) FROM Feedback_forms)
-ORDER BY f.rating DESC;</div>
         
         <table>
             <thead>
@@ -308,15 +308,8 @@ ORDER BY f.rating DESC;</div>
 
     <!-- Query 4: Set Membership (IN Subquery) -->
     <div class="report-section">
-        <div class="report-title">4. 給過 5 星滿分好評的顧客名單 (Set Membership / IN Subquery)</div>
-        <div class="report-description">使用 IN 運算子，查詢所有曾給予過整體 5 星最高滿意度評價的顧客資料，以便進行精準行銷與VIP關懷。</div>
-        <div class="sql-box">SELECT Customer_ID, name, member_level, phone_number
-FROM Customers
-WHERE Customer_ID IN (
-    SELECT DISTINCT Customer_ID 
-    FROM Feedback_forms 
-    WHERE rating = 5
-);</div>
+        <div class="report-title">4. 給過 5 星滿分好評的顧客名單</div>
+        <div class="report-description">查詢所有曾給予過整體 5 星最高滿意度評價的顧客資料，以便進行精準行銷與VIP關懷。</div>
         
         <table>
             <thead>
@@ -357,24 +350,8 @@ WHERE Customer_ID IN (
 
     <!-- Query 5: Customer Most Ordered Dish (Window Function & CTE) -->
     <div class="report-section">
-        <div class="report-title">5. 各顧客點購最多次的餐點 (Window Function & CTE + JOIN)</div>
+        <div class="report-title">5. 各顧客點購最多次的餐點</div>
         <div class="report-description">統計每位顧客點購次數最多的餐點，包含顧客姓名與會員等級，可用於針對個人偏好的精準餐點行銷。</div>
-        <div class="sql-box">WITH CustomerDishQty AS (
-    SELECT c.Customer_ID, c.name AS customer_name, c.member_level, co.Dish_ID, d.name AS dish_name, SUM(co.number) AS total_qty
-    FROM Customers c
-    JOIN Has h ON c.Customer_ID = h.Customer_ID
-    JOIN Contain co ON h.Record_ID = co.Record_ID
-    JOIN Dishes d ON co.Dish_ID = d.Dish_ID
-    GROUP BY c.Customer_ID, c.name, c.member_level, co.Dish_ID, d.name
-),
-RankedDishes AS (
-    SELECT Customer_ID, customer_name, member_level, Dish_ID, dish_name, total_qty,
-           RANK() OVER (PARTITION BY Customer_ID ORDER BY total_qty DESC) AS rk
-    FROM CustomerDishQty
-)
-SELECT Customer_ID, customer_name, member_level, Dish_ID, dish_name, total_qty
-FROM RankedDishes
-WHERE rk = 1;</div>
         
         <table>
             <thead>

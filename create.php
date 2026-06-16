@@ -1,4 +1,9 @@
 <?php
+session_start();
+if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['customer', 'manager'])) {
+    header('Location: login.php');
+    exit;
+}
 require_once 'db_config.php';
 
 $message = "";
@@ -8,12 +13,12 @@ $error = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (
         isset($_POST['feedback_id']) && 
-        isset($_POST['customer_id']) && 
+        (isset($_POST['customer_id']) || $_SESSION['role'] === 'customer') && 
         isset($_POST['record_id']) && 
         isset($_POST['rating'])
     ) {
         $feedback_id = $_POST['feedback_id'];
-        $customer_id = $_POST['customer_id'];
+        $customer_id = ($_SESSION['role'] === 'customer') ? $_SESSION['user_id'] : $_POST['customer_id'];
         $record_id = $_POST['record_id'];
         $rating = intval($_POST['rating']);
         $opinion = $_POST['opinion'];
@@ -90,7 +95,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Commit Transaction
             $conn->commit();
-            header('Location: index.php');
+            if ($_SESSION['role'] === 'customer') {
+                header('Location: customer_dashboard.php');
+            } else {
+                header('Location: feedback_list.php');
+            }
             exit;
 
         } catch (Exception $e) {
@@ -357,6 +366,14 @@ if ($res && $res->num_rows > 0) {
 
 <div class="container">
     <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef4444; padding-bottom: 10px; margin-bottom: 20px;">
+            <span style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">🍅 紅番茄</span>
+            <?php if($_SESSION['role'] === 'customer'): ?>
+                <a href="customer_dashboard.php" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem;">返回顧客專區</a>
+            <?php else: ?>
+                <a href="feedback_list.php" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem;">返回回饋列表</a>
+            <?php endif; ?>
+        </div>
         <h1>✍️ 新增顧客回饋表單</h1>
         
         <?php if ($message !== ""): ?>
@@ -388,14 +405,27 @@ if ($res && $res->num_rows > 0) {
             <div class="grid-2">
                 <div class="form-group">
                     <label for="customer_id">選擇顧客</label>
-                    <select id="customer_id" name="customer_id" required>
-                        <option value="">-- 請選擇顧客 --</option>
-                        <?php foreach($customers as $c): ?>
-                            <option value="<?php echo htmlspecialchars($c['Customer_ID']); ?>">
-                                <?php echo htmlspecialchars($c['name'] . " (" . $c['Customer_ID'] . ")"); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <?php if ($_SESSION['role'] === 'customer'): ?>
+                        <select id="customer_id" name="customer_id" required disabled>
+                            <?php foreach($customers as $c): ?>
+                                <?php if ($c['Customer_ID'] === $_SESSION['user_id']): ?>
+                                    <option value="<?php echo htmlspecialchars($c['Customer_ID']); ?>" selected>
+                                        <?php echo htmlspecialchars($c['name'] . " (" . $c['Customer_ID'] . ")"); ?>
+                                    </option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php else: ?>
+                        <select id="customer_id" name="customer_id" required>
+                            <option value="">-- 請選擇顧客 --</option>
+                            <?php foreach($customers as $c): ?>
+                                <option value="<?php echo htmlspecialchars($c['Customer_ID']); ?>">
+                                    <?php echo htmlspecialchars($c['name'] . " (" . $c['Customer_ID'] . ")");
+                                    ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-group">
@@ -454,7 +484,11 @@ if ($res && $res->num_rows > 0) {
             </div>
 
             <div class="btn-row">
-                <a href="index.php" class="btn btn-cancel">返回主頁</a>
+                <?php if($_SESSION['role'] === 'customer'): ?>
+                    <a href="customer_dashboard.php" class="btn btn-cancel">返回顧客專區</a>
+                <?php else: ?>
+                    <a href="feedback_list.php" class="btn btn-cancel">返回回饋列表</a>
+                <?php endif; ?>
                 <button type="submit" class="btn btn-submit">送出回饋</button>
             </div>
         </form>
@@ -614,6 +648,11 @@ function removeDishField(id) {
     if (container.children.length === 0) {
         container.innerHTML = '<p id="dish-placeholder-text" style="color: var(--text-muted); font-size: 0.9rem; text-align: center; margin: 20px 0;">尚未新增餐點評價，點擊右上角按鈕新增</p>';
     }
+}
+
+// Auto-trigger change event if customer is pre-selected (for logged-in Customer)
+if (document.getElementById('customer_id').value) {
+    document.getElementById('customer_id').dispatchEvent(new Event('change'));
 }
 </script>
 
