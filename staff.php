@@ -1,9 +1,4 @@
 <?php
-session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    header('Location: login.php');
-    exit;
-}
 require_once 'db_config.php';
 
 $message = "";
@@ -300,18 +295,10 @@ $stmt->close();
 <body>
 
 <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ef4444; padding-bottom: 15px;">
-        <h1 style="margin: 0; color: #ef4444; font-size: 2.2rem; display: flex; align-items: center; gap: 8px;">🍅 紅番茄</h1>
-        <div>
-            <span style="font-size: 1rem; color: #4b5563; margin-right: 15px;">經理 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 您好</span>
-            <a href="logout.php" style="background-color: #fee2e2; color: #b91c1c; padding: 8px 16px; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#fecaca'" onmouseout="this.style.backgroundColor='#fee2e2'">登出系統</a>
-        </div>
-    </div>
-
-    <h2>員工資料管理</h2>
+    <h1>員工資料表格</h1>
 
     <div class="top-bar">
-        <a href="manager_home.php" class="btn btn-gray">⭠ 返回管理者首頁</a>
+        <a href="manager_home.php" class="btn btn-gray">返回管理者首頁</a>
         <form method="GET" action="staff.php" class="search-box">
             <input type="text" name="search" class="search-input" placeholder="查詢員工編號、姓名或職位..." value="<?php echo htmlspecialchars($search); ?>">
             <button type="submit" class="btn btn-primary">查詢</button>
