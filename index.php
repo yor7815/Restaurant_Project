@@ -1,189 +1,26 @@
 <?php
 session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    if (isset($_SESSION['role']) && $_SESSION['role'] === 'customer') {
-        header('Location: customer_dashboard.php');
-    } elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'staff') {
-        header('Location: staff_dashboard.php');
-    } else {
-        header('Location: login.php');
-    }
+
+if (!isset($_SESSION['role'])) {
+    header('Location: login.php');
     exit;
 }
+
+if ($_SESSION['role'] === 'manager') {
+    header('Location: manager_home.php');
+    exit;
+}
+
+if ($_SESSION['role'] === 'staff') {
+    header('Location: staff_dashboard.php');
+    exit;
+}
+
+if ($_SESSION['role'] === 'customer') {
+    header('Location: customer_dashboard.php');
+    exit;
+}
+
+header('Location: login.php');
+exit;
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>紅番茄餐廳 - 經理管理後台</title>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary-red: #ef4444;
-            --hover-red: #dc2626;
-            --bg-color: #f9fafb;
-            --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --border-color: #e5e7eb;
-            --text-muted: #6b7280;
-        }
-
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            position: relative;
-            box-sizing: border-box;
-            padding: 40px 20px;
-        }
-
-        .brand {
-            position: absolute;
-            top: 30px;
-            left: 30px;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--primary-red);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .brand::before {
-            content: "🍅";
-        }
-
-        .dashboard-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
-            padding: 45px 40px;
-            text-align: center;
-            width: 100%;
-            max-width: 520px;
-            box-sizing: border-box;
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            margin-top: 0;
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-
-        .welcome-text {
-            color: var(--text-muted);
-            font-size: 1.05rem;
-            margin-bottom: 35px;
-        }
-
-        .menu-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            padding: 14px;
-            font-size: 1.05rem;
-            font-weight: 600;
-            border-radius: 10px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            box-sizing: border-box;
-            gap: 8px;
-        }
-
-        .btn-query {
-            background-color: #4f46e5;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
-        }
-
-        .btn-query:hover {
-            background-color: #4338ca;
-            transform: translateY(-1px);
-        }
-
-        .btn-home {
-            background-color: #0f766e;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(15, 118, 110, 0.2);
-        }
-
-        .btn-home:hover {
-            background-color: #115e59;
-            transform: translateY(-1px);
-        }
-
-        .btn-customer {
-            background-color: #0284c7;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.2);
-        }
-
-        .btn-customer:hover {
-            background-color: #0369a1;
-            transform: translateY(-1px);
-        }
-
-        .btn-list {
-            background-color: #f59e0b;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2);
-        }
-
-        .btn-list:hover {
-            background-color: #d97706;
-            transform: translateY(-1px);
-        }
-
-        .btn-logout {
-            background-color: #f3f4f6;
-            color: #4b5563;
-            font-size: 0.95rem;
-            padding: 10px;
-            margin-top: 10px;
-        }
-
-        .btn-logout:hover {
-            background-color: #e5e7eb;
-            color: #1f2937;
-        }
-    </style>
-</head>
-<body>
-
-<a href="#" class="brand">紅番茄</a>
-
-<div class="dashboard-card">
-    <h1>系統經理後台</h1>
-    <div class="welcome-text">經理 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong>，您好！請選擇管理功能：</div>
-    
-    <div class="menu-grid">
-        <a href="advanced_query.php" class="btn btn-query">📊 進階統計報表</a>
-        <a href="manager_home.php" class="btn btn-home">🏠 管理者首頁</a>
-        <a href="customer_data.php" class="btn btn-customer">👥 顧客總覽</a>
-        <a href="feedback_list.php" class="btn btn-list">📄 回饋表單總覽</a>
-    </div>
-
-    <a href="logout.php" class="btn btn-logout">登出系統</a>
-</div>
-
-</body>
-</html>
