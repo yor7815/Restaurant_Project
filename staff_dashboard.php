@@ -103,6 +103,18 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
             transform: translateY(-1px);
         }
 
+        .btn-secondary {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+            margin-bottom: 16px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #dc2626;
+            transform: translateY(-1px);
+        }
+
         .btn-logout {
             background-color: #f3f4f6;
             color: #4b5563;
@@ -125,6 +137,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'staff') {
     <div class="welcome-text">外場服務同仁 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong>，您好！</div>
     
     <a href="create_record.php" class="btn btn-primary">🍽️ 建立用餐紀錄</a>
+    <a href="record_list.php" class="btn btn-secondary">用餐紀錄一覽</a>
     <a href="logout.php" class="btn btn-logout">登出系統</a>
 </div>
 
