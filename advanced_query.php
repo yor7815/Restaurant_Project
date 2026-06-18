@@ -161,12 +161,12 @@ require_once 'db_config.php';
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ef4444; padding-bottom: 15px;">
         <h1 style="margin: 0; color: #ef4444; font-size: 2.2rem; display: flex; align-items: center; gap: 8px;">🍅 紅番茄</h1>
         <div>
-            <span style="font-size: 1rem; color: #4b5563; margin-right: 15px;">經理 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 您好</span>
+            <span style="font-size: 1rem; color: #4b5563; margin-right: 15px;"><strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 您好</span> 
             <a href="logout.php" style="background-color: #fee2e2; color: #b91c1c; padding: 8px 16px; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#fecaca'" onmouseout="this.style.backgroundColor='#fee2e2'">登出系統</a>
         </div>
     </div>
 
-    <a href="index.php" class="back-link">⭠ 返回經理主選單</a>
+    <a href="manager_home.php" class="back-link">⭠ 返回管理者首頁</a>
     <h2>📊 進階統計報表</h2>
 
     <!-- Query 1: Aggregate Function (AVG, COUNT) on Dishes -->
