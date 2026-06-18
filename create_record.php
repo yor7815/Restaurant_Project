@@ -1,13 +1,4 @@
 <?php
-session_start();
-if (!isset($_SESSION['role']) || !in_array($_SESSION['role'], ['staff', 'manager'])) {
-    if (isset($_SESSION['role']) && $_SESSION['role'] === 'customer') {
-        header('Location: customer_dashboard.php');
-    } else {
-        header('Location: login.php');
-    }
-    exit;
-}
 require_once 'db_config.php';
 
 $message = "";
@@ -16,8 +7,15 @@ function h($value) {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
 
+$next_record_id = 'R001';
+$res = $conn->query("SELECT MAX(CAST(SUBSTRING(Record_ID, 2) AS UNSIGNED)) AS max_id FROM Consumption_records WHERE Record_ID REGEXP '^R[0-9]+$'");
+if ($res && $row = $res->fetch_assoc()) {
+    $next_number = ((int)$row['max_id']) + 1;
+    $next_record_id = 'R' . str_pad((string)$next_number, 3, '0', STR_PAD_LEFT);
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $record_id = isset($_POST['record_id']) ? trim($_POST['record_id']) : '';
+    $record_id = isset($_POST['record_id']) ? trim($_POST['record_id']) : $next_record_id;
     $customer_id = isset($_POST['customer_id']) ? trim($_POST['customer_id']) : '';
     $date = isset($_POST['date']) ? trim($_POST['date']) : '';
     $time = isset($_POST['time']) ? trim($_POST['time']) : '';
@@ -78,13 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$stmt->execute()) {
                 throw new Exception("建立服務員關係失敗：" . $stmt->error);
             }
+            $stmt->close();
+
             $conn->commit();
-            $message = "成功建立用餐紀錄！新增的 Record_ID 為: " . $record_id;
-            if ($_SESSION['role'] === 'staff') {
-                header('Location: staff_dashboard.php');
-            } else {
-                header('Location: index.php');
-            }
+            header('Location: record_list.php');
             exit;
         } catch (Exception $e) {
             $conn->rollback();
@@ -260,14 +255,6 @@ if ($res) {
 <body>
 
 <div class="container">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ef4444; padding-bottom: 10px; margin-bottom: 20px;">
-        <span style="font-size: 1.8rem; font-weight: 700; color: #ef4444;">🍅 紅番茄</span>
-        <?php if($_SESSION['role'] === 'staff'): ?>
-            <a href="staff_dashboard.php" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem;">返回服務員專區</a>
-        <?php else: ?>
-            <a href="index.php" class="btn btn-cancel" style="padding: 6px 12px; font-size: 0.85rem;">返回經理首頁</a>
-        <?php endif; ?>
-    </div>
     <div class="card">
         <h1>建立用餐紀錄</h1>
 
@@ -282,7 +269,7 @@ if ($res) {
 
                     <div class="form-group">
                         <label for="record_id">Record ID</label>
-                        <input type="text" id="record_id" name="record_id" placeholder="例如 R005" value="<?php echo isset($_POST['record_id']) ? h($_POST['record_id']) : ''; ?>" required>
+                        <input type="text" id="record_id" name="record_id" value="<?php echo h(isset($_POST['record_id']) ? $_POST['record_id'] : $next_record_id); ?>" readonly required>
                     </div>
 
                     <div class="form-group">
@@ -364,11 +351,7 @@ if ($res) {
             </div>
 
             <div class="btn-row">
-                <?php if($_SESSION['role'] === 'staff'): ?>
-                    <a href="staff_dashboard.php" class="btn btn-cancel">返回專區</a>
-                <?php else: ?>
-                    <a href="index.php" class="btn btn-cancel">返回經理首頁</a>
-                <?php endif; ?>
+                <a href="staff_dashboard.php" class="btn btn-cancel">回首頁</a>
                 <button type="submit" class="btn btn-submit">建立</button>
             </div>
         </form>
