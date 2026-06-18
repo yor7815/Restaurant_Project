@@ -1,9 +1,4 @@
 <?php
-session_start();
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    header('Location: login.php');
-    exit;
-}
 require_once 'db_config.php';
 
 function e($value) {
@@ -353,23 +348,13 @@ if ($selected_staff_id !== '') {
 </head>
 <body>
 <main class="page">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ef4444; padding-bottom: 15px;">
-        <a href="index.php" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><h1 style="margin: 0; color: #ef4444; font-size: 2.2rem;">🍅 紅番茄</h1></a>
-        <div>
-            <span style="font-size: 1rem; color: #4b5563; margin-right: 15px;">經理 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 您好</span>
-            <a href="logout.php" style="background-color: #fee2e2; color: #b91c1c; padding: 8px 16px; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#fecaca'" onmouseout="this.style.backgroundColor='#fee2e2'">登出系統</a>
-        </div>
-    </div>
-
     <header class="topbar">
         <div>
             <h1>員工評分統計</h1>
             <p class="subtitle">依員工彙整服務評分，並列出每筆服務意見明細。</p>
         </div>
         <nav class="actions">
-            <a class="btn btn-light" href="index.php">⭠ 返回經理主選單</a>
-            <a class="btn btn-light" href="manager_home.php">管理者首頁</a>
-            <a class="btn" href="feedback_list.php">顧客回饋列表</a>
+            <a class="btn btn-light" href="manager_home.php">← 返回管理者首頁</a>
         </nav>
     </header>
 
