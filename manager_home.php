@@ -1,7 +1,13 @@
 <?php
 session_start();
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'manager') {
-    header('Location: login.php');
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'customer') {
+        header('Location: customer_dashboard.php');
+    } elseif (isset($_SESSION['role']) && $_SESSION['role'] === 'staff') {
+        header('Location: staff_dashboard.php');
+    } else {
+        header('Location: login.php');
+    }
     exit;
 }
 require_once 'db_config.php';
@@ -109,6 +115,8 @@ $low_feedback_result = $conn->query($low_feedback_sql);
             --primary-dark: #2445ac;
             --green: #0f8b5f;
             --amber: #b76e00;
+            --tomato: #ef4444;
+            --tomato-dark: #dc2626;
             --red: #bc3030;
         }
 
@@ -127,6 +135,49 @@ $low_feedback_result = $conn->query($low_feedback_sql);
             max-width: 1180px;
             margin: 0 auto;
             padding: 32px 20px 44px;
+        }
+
+        .brand-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #ef4444;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            color: #ef4444;
+            font-size: 2.2rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            color: #4b5563;
+            font-size: 1rem;
+        }
+
+        .logout-link {
+            background-color: #fee2e2;
+            color: #b91c1c;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .logout-link:hover {
+            background-color: #fecaca;
         }
 
         .topbar {
@@ -181,6 +232,18 @@ $low_feedback_result = $conn->query($low_feedback_sql);
 
         .btn-light:hover {
             background: #f8fafc;
+        }
+
+        .menu-btn {
+            background: #ffffff;
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .menu-btn:hover {
+            background: var(--tomato);
+            color: #ffffff;
+            border-color: var(--tomato);
         }
 
         .metrics {
@@ -316,6 +379,11 @@ $low_feedback_result = $conn->query($low_feedback_sql);
         }
 
         @media (max-width: 900px) {
+            .brand-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
             .topbar,
             .grid {
                 display: grid;
@@ -348,11 +416,11 @@ $low_feedback_result = $conn->query($low_feedback_sql);
 </head>
 <body>
 <main class="page">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ef4444; padding-bottom: 15px;">
-        <a href="index.php" style="text-decoration: none; display: flex; align-items: center; gap: 8px;"><h1 style="margin: 0; color: #ef4444; font-size: 2.2rem;">🍅 紅番茄</h1></a>
-        <div>
-            <span style="font-size: 1rem; color: #4b5563; margin-right: 15px;">經理 <strong><?php echo htmlspecialchars($_SESSION['user_name']); ?></strong> 您好</span>
-            <a href="logout.php" style="background-color: #fee2e2; color: #b91c1c; padding: 8px 16px; text-decoration: none; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: background 0.2s;" onmouseover="this.style.backgroundColor='#fecaca'" onmouseout="this.style.backgroundColor='#fee2e2'">登出系統</a>
+    <div class="brand-header">
+        <a href="manager_home.php" class="brand-title">🍅 紅番茄</a>
+        <div class="user-area">
+            <span>系統經理您好</span>
+            <a href="logout.php" class="logout-link">登出系統</a>
         </div>
     </div>
 
@@ -362,11 +430,11 @@ $low_feedback_result = $conn->query($low_feedback_sql);
             <p class="subtitle">快速查看營運概況、整體滿意度與員工服務評分。</p>
         </div>
         <nav class="actions">
-            <a class="btn btn-light" href="index.php">⭠ 返回經理主選單</a>
-            <a class="btn btn-light" href="feedback_list.php">📋 顧客回饋列表</a>
-            <a class="btn btn-light" href="staff.php">員工資料表格</a>
-            <a class="btn" href="staff_stats.php">員工評分統計</a>
-            <a class="btn btn-light" href="advanced_query.php">進階統計報表</a>
+            <a class="btn menu-btn" href="feedback_list.php">回饋表單總覽</a>
+            <a class="btn menu-btn" href="advanced_query.php">進階統計表</a>
+            <a class="btn menu-btn" href="customer_data.php">顧客總覽</a>
+            <a class="btn menu-btn" href="staff_stats.php">員工評分統計</a>
+            <a class="btn menu-btn" href="staff.php">員工總覽</a>
         </nav>
     </header>
 
